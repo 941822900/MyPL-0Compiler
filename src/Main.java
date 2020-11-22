@@ -2,6 +2,11 @@ public class Main
 {
     public static void main(String arg[])
     {
-        System.out.println("Hello world!");
+        //词法分析写的有点丑，而且和后面不搭，但懒得改了，反正是分开的，将就着用吧...
+        LexicalAnalyzer.init("词法分析表.txt");
+        LexicalAnalyzer.lexicalAnalyze("1.txt", FileHandler.readToString("in.txt"));
+
+        //以语法分析为核心的，语法+语义+生成代码
+        SyntacticAnalyzer.syntacticAnalyse("2.txt",FileHandler.readToString("1.txt"));
     }
 }
