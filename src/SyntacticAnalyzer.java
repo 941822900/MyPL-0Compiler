@@ -30,8 +30,9 @@ import java.util.ArrayList;
 public class SyntacticAnalyzer
 {
     static private int p;
+    static private int lev; //当前的层次
     static private int cnt_B;
-    static private String tree;
+    static private String treeString;
     static ArrayList<Pair<Integer,String>> words = new ArrayList<>();
     public static void syntacticAnalyse(String writeFileName, String str)
     {
@@ -42,10 +43,10 @@ public class SyntacticAnalyzer
             words.add(new Pair<>(Integer.parseInt(tmpString[0].substring(1)),tmpString[1].substring(0,tmpString[1].length()-1)));
         }
         p = 0;
-        cnt_B = 0;
-        tree = "";
+        lev = 0;
+        treeString = "";
         A();
-        FileHandler.writeToFile(writeFileName,tree);
+        FileHandler.writeToFile(writeFileName,treeString);
     }
     //得到p位置二元式的首项
     private static int theNum() {
@@ -66,7 +67,7 @@ public class SyntacticAnalyzer
         }
         else if(theNum() == x)
         {
-            tree += "[" + theNum() + " " + theStr() + "]";
+            treeString += "[" + theNum() + " " + theStr() + "]";
             ++p;
         }
         else
@@ -80,34 +81,33 @@ public class SyntacticAnalyzer
     private static void read(int x, int y) {
         if(p >= words.size())
         {
-            System.out.println("Error in SyntacticAnalyzer!(1)");
+            System.out.println("Error in SyntacticAnalyzer! 越界");
             System.exit(0);
         }
         else if(theNum() >= x && theNum() <= y)
         {
-            tree += "[" + theNum() + " " + theStr() + "]";
+            treeString += "[" + theNum() + " " + theStr() + "]";
             ++p;
         }
         else
         {
             System.out.println("[" + theNum() + " " + theStr() + "]");
-            System.out.println("Error in SyntacticAnalyzer!(2)");
+            System.out.println("Error in SyntacticAnalyzer! 错误");
             System.exit(0);
         }
     }
     private static void A() {
-        tree +="A{";
+        treeString +="A{";
         B();
-        tree +="}";
+        treeString +="}";
     }
     private static void B() {
-        ++cnt_B;
-        if(cnt_B >= 4)
+        if(lev >= 3)
         {
             System.out.println("程序嵌套不能超过3层！");
             System.exit(0);
         }
-        tree +="B{";
+        treeString +="B{";
         if(theNum() == 1)
             C();
         if(theNum() == 2)
@@ -115,11 +115,10 @@ public class SyntacticAnalyzer
         if(theNum() == 3)
             F();
         H();
-        tree +="}";
-        --cnt_B;
+        treeString +="}";
     }
     private static void C() {
-        tree +="C{";
+        treeString +="C{";
         read(1);
         D();
         while(theNum() == 27)
@@ -128,17 +127,17 @@ public class SyntacticAnalyzer
             D();
         }
         read(28);
-        tree +="}";
+        treeString +="}";
     }
     private static void D() {
-        tree +="D{";
+        treeString +="D{";
         read(14);
         read(20);
         read(15);
-        tree +="}";
+        treeString +="}";
     }
     private static void E() {
-        tree +="E{";
+        treeString +="E{";
         read(2);
         read(14);
         while(theNum() == 27)
@@ -147,26 +146,26 @@ public class SyntacticAnalyzer
             read(14);
         }
         read(28);
-        tree +="}";
+        treeString +="}";
     }
     private static void F() {
-        tree +="F{";
+        treeString +="F{";
         G();
-        B();
+        ++lev;B();--lev;
         read(28);
         while (theNum() == 3)
             F();
-        tree +="}";
+        treeString +="}";
     }
     private static void G() {
-        tree +="G{";
+        treeString +="G{";
         read(3);
         read(14);
         read(28);
-        tree +="}";
+        treeString +="}";
     }
     private static void H() {
-        tree +="H{";
+        treeString +="H{";
         switch (theNum())
         {
             case 14: I();break;
@@ -177,17 +176,17 @@ public class SyntacticAnalyzer
             case 13: V();break;
             case 4: J();break;
         }
-        tree +="}";
+        treeString +="}";
     }
     private static void I() {
-        tree +="I{";
+        treeString +="I{";
         read(14);
         read(26);
         L();
-        tree +="}";
+        treeString +="}";
     }
     private static void J() {
-        tree +="J{";
+        treeString +="J{";
         read(4);
         H();
         while (theNum() == 28)
@@ -196,10 +195,10 @@ public class SyntacticAnalyzer
             H();
         }
         read(5);
-        tree +="}";
+        treeString +="}";
     }
     private static void K() {
-        tree +="K{";
+        treeString +="K{";
         if(theNum() == 6)
         {
             read(6);
@@ -211,10 +210,10 @@ public class SyntacticAnalyzer
             Q();
             L();
         }
-        tree +="}";
+        treeString +="}";
     }
     private static void L() {
-        tree +="L{";
+        treeString +="L{";
         if(theNum() == 16)
             read(16);
         else if(theNum() == 17)
@@ -225,20 +224,20 @@ public class SyntacticAnalyzer
             O();
             M();
         }
-        tree +="}";
+        treeString +="}";
     }
     private static void M() {
-        tree +="M{";
+        treeString +="M{";
         N();
         while (theNum() == 18 || theNum() == 19)
         {
             P();
             N();
         }
-        tree +="}";
+        treeString +="}";
     }
     private static void N() {
-        tree +="N{";
+        treeString +="N{";
         if(theNum() == 14)
             read(14);
         else if(theNum() == 15)
@@ -249,47 +248,47 @@ public class SyntacticAnalyzer
             L();
             read(30);
         }
-        tree +="}";
+        treeString +="}";
     }
     private static void O() {
-        tree +="O{";
+        treeString +="O{";
         read(16,17);
-        tree +="}";
+        treeString +="}";
     }
     private static void P() {
-        tree +="P{";
+        treeString +="P{";
         read(18,19);
-        tree +="}";
+        treeString +="}";
     }
     private static void Q() {
-        tree +="Q{";
+        treeString +="Q{";
         read(20,25);
-        tree +="}";
+        treeString +="}";
     }
     private static void R() {
-        tree +="R{";
+        treeString +="R{";
         read(7);
         K();
         read(8);
         H();
-        tree +="}";
+        treeString +="}";
     }
     private static void S() {
-        tree +="S{";
+        treeString +="S{";
         read(11);
         read(14);
-        tree +="}";
+        treeString +="}";
     }
     private static void T() {
-        tree +="T{";
+        treeString +="T{";
         read(9);
         K();
         read(10);
         H();
-        tree +="}";
+        treeString +="}";
     }
     private static void U() {
-        tree +="U{";
+        treeString +="U{";
         read(12);
         read(29);
         read(14);
@@ -299,10 +298,10 @@ public class SyntacticAnalyzer
             read(14);
         }
         read(30);
-        tree +="}";
+        treeString +="}";
     }
     private static void V() {
-        tree +="V{";
+        treeString +="V{";
         read(13);
         read(29);
         read(14);
@@ -312,6 +311,6 @@ public class SyntacticAnalyzer
             read(14);
         }
         read(30);
-        tree +="}";
+        treeString +="}";
     }
 }
