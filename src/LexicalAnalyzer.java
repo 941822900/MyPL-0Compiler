@@ -39,9 +39,9 @@ write 13
  */
 public class LexicalAnalyzer
 {
-    private static Map<String,Integer> map1 = new HashMap<>();//关键字
-    private static Map<String,Integer> map2 = new HashMap<>();//运算符
-    public static void init(String filename)
+    private Map<String,Integer> map1 = new HashMap<>();//关键字
+    private Map<String,Integer> map2 = new HashMap<>();//运算符
+    public void init(String filename)
     {
         int cnt = 0;
         String str = FileHandler.readToString(filename);
@@ -62,7 +62,7 @@ public class LexicalAnalyzer
             }
         }
     }
-    public static void lexicalAnalyze(String writeFileName, String str)
+    public void lexicalAnalyze(String writeFileName, String str)
     {
         String ret = "";
         str = str.replaceAll("\t","");
@@ -137,10 +137,10 @@ public class LexicalAnalyzer
         }
         FileHandler.writeToFile(writeFileName, ret);
     }
-    private static boolean isDight(char c){
+    private boolean isDight(char c){
         return c >= '0' && c <= '9';
     }
-    private static boolean isLetter(char c){
+    private boolean isLetter(char c){
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
 }
