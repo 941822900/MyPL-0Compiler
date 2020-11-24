@@ -119,7 +119,7 @@ public class SyntacticAnalyzer
         codeTable = new ArrayList<>();
         words = new ArrayList<>();
     }
-    public void syntacticAnalyse(String writeFileName, String str)
+    public void syntacticAnalyse(String writeFileName1, String writeFileName2, String str)
     {
         init();
         String rows[] = str.split("\\r\\n");
@@ -129,7 +129,11 @@ public class SyntacticAnalyzer
             words.add(new Pair<>(Integer.parseInt(tmpString[0].substring(1)),tmpString[1].substring(0,tmpString[1].length()-1)));
         }
         A();
-        FileHandler.writeToFile(writeFileName,treeString);
+        FileHandler.writeToFile(writeFileName1,treeString);
+        String codeString = "";
+        for(int i = 0; i < codeTable.size(); i++)
+            codeString += codeTable.get(i).op + " " + codeTable.get(i).l + " " + codeTable.get(i).a + "\r\n";
+        FileHandler.writeToFile(writeFileName2,codeString);
     }
     //得到p位置二元式的首项
     private int theNum() {
@@ -144,12 +148,12 @@ public class SyntacticAnalyzer
     //得到p-x位置二元式的首项
     private int preNum(int x) {
         if(p - x < 0 || p - x>= words.size()) return -1;
-        return words.get(p).getKey();
+        return words.get(p - x).getKey();
     }
     //得到p-x位置二元式的第二项
     private String preStr(int x) {
         if(p - x < 0 || p - x >= words.size()) return "-";
-        return words.get(p).getValue();
+        return words.get(p - x).getValue();
     }
     //报错并退出
     private void reportError(String s)
@@ -166,7 +170,8 @@ public class SyntacticAnalyzer
             treeString += "[" + theNum() + " " + theStr() + "]";
             ++p;
         }
-        else reportError("[" + theNum() + " " + theStr() + "]\r\nError in SyntacticAnalyzer! 错误");
+        else
+            reportError("[" + theNum() + " " + theStr() + "]\r\nError in SyntacticAnalyzer! 错误");
     }
     //一个范围内接受一个词，若不在范围内则报错
     private void read(int x, int y) {
@@ -177,7 +182,8 @@ public class SyntacticAnalyzer
             treeString += "[" + theNum() + " " + theStr() + "]";
             ++p;
         }
-        else reportError("[" + theNum() + " " + theStr() + "]\r\nError in SyntacticAnalyzer! 错误");
+        else
+            reportError("[" + theNum() + " " + theStr() + "]\r\nError in SyntacticAnalyzer! 错误");
     }
     //生成代码语句 (op,l,a)
     private void gen(OP op, int l, int a)
@@ -201,7 +207,7 @@ public class SyntacticAnalyzer
             System.exit(0);
         }
         treeString +="B{";
-        int nowPC = codeTable.size() - 1;
+        int nowPC = codeTable.size();
         gen(OP.JMP, 0, 0);//a值过程(即F)执行完后，回填
         if(theNum() == 1)
             count += C();
@@ -210,7 +216,7 @@ public class SyntacticAnalyzer
         if(theNum() == 3)
         {
             count += F();
-            codeTable.get(nowPC).a = codeTable.size() - 1;
+            codeTable.get(nowPC).a = codeTable.size();
         }
         else codeTable.remove(codeTable.size() - 1);//没有过程说明部分，则不需要这一条跳转语句
         gen(OP.INT, 0, NUM_LINK_DATA + count);//开辟改过程的空间
@@ -244,7 +250,7 @@ public class SyntacticAnalyzer
         Symbol symbol = new Symbol();
         symbol.name = preStr(3);
         symbol.kind = Kind.CONST;
-        symbol.val = preNum(3);
+        symbol.val = Integer.parseInt(preStr(1));
         symTable.add(symbol);
         treeString +="}";
         return 0;
@@ -261,7 +267,7 @@ public class SyntacticAnalyzer
         symbol.name = preStr(1);
         symbol.kind = Kind.VAR;
         symbol.lev = lev;
-        symbol.adr = 0;
+        symbol.adr = NUM_LINK_DATA;
         symTable.add(symbol);
         ++count;
         while(theNum() == 27)
@@ -303,7 +309,8 @@ public class SyntacticAnalyzer
         symbol.name = preStr(2);
         symbol.kind = Kind.PROCEDURE;
         symbol.lev = lev;
-        symbol.adr = codeTable.size() - 1;
+        symbol.adr = codeTable.size();
+        symTable.add(symbol);
         treeString +="}";
         return 0;
     }
@@ -421,12 +428,14 @@ public class SyntacticAnalyzer
                 reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
             if(symTable.get(pos).kind == Kind.PROCEDURE)
                 reportError("Semantic analysis error!\r\nA factor cannot be a PROCEDURE, but " + preStr(1) + " is!");
-            gen(OP.LOD, lev - symTable.get(pos).lev, symTable.get(pos).adr);
+            if(symTable.get(pos).kind == Kind.VAR)
+                gen(OP.LOD, lev - symTable.get(pos).lev, symTable.get(pos).adr);
+            else gen(OP.LIT, 0, symTable.get(pos).val);
         }
         else if(theNum() == 15)
         {
             read(15);
-            gen(OP.LIT, 0, preNum(1));
+            gen(OP.LIT, 0, Integer.parseInt(preStr(1)));
         }
         else
         {
@@ -460,11 +469,11 @@ public class SyntacticAnalyzer
         treeString +="R{";
         read(7);
         K();
-        int nowPC = codeTable.size() - 1;
+        int nowPC = codeTable.size();
         gen(OP.JPC, 0, 0); //条件为假，跳转至a地址，等待回填
         read(8);
         H();
-        codeTable.get(nowPC).a = codeTable.size() - 1;
+        codeTable.get(nowPC).a = codeTable.size();
         treeString +="}";
         return 0;
     }
@@ -485,15 +494,15 @@ public class SyntacticAnalyzer
     //当型循环语句
     private int T() {
         treeString +="T{";
-        int loopPC = codeTable.size() - 1;
+        int loopPC = codeTable.size();
         read(9);
         K();
-        int nowPC = codeTable.size() - 1;
+        int nowPC = codeTable.size();
         gen(OP.JPC, 0, 0); //循环条件为假，跳转至a地址，等待回填
         read(10);
         H();
         gen(OP.JMP, 0, loopPC);
-        codeTable.get(nowPC).a = codeTable.size() - 1;
+        codeTable.get(nowPC).a = codeTable.size();
         treeString +="}";
         return 0;
     }

@@ -9,6 +9,6 @@ public class Main
 
         //以语法分析为核心的，语法+语义+生成代码
         SyntacticAnalyzer syntacticAnalyzer = new SyntacticAnalyzer();
-        syntacticAnalyzer.syntacticAnalyse("2.txt",FileHandler.readToString("1.txt"));
+        syntacticAnalyzer.syntacticAnalyse("2.txt","3.txt",FileHandler.readToString("1.txt"));
     }
 }

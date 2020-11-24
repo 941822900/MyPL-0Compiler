@@ -1,24 +1,15 @@
-CONST mya=1, myb=2, myc=3;
-VAR myd,mye;
-procedure mypro1;
-	mye:=0;
-procedure mypro2;;
-procedure mypro3;;
-procedure mypro4;;
-procedure mypro5;;
-procedure mypro6;;
+CONST a=10;
+VAR b,c;
+procedure p;
 begin
-
-
-myd:=1*2+4/2;
-mye:=4;
-if odd myd-mye then
-	call mypro1;
-while myd>=0 do
-	begin
-	myd:=myd-1;
-	mye:=mye+1;
-	read(mya);
-	write(myb)
-	end
+  c:=b+a
+end;
+begin
+  read(b);
+  while b#0 do
+    begin
+      call  p;
+      write(2*c);
+      read(b)
+    end
 end
