@@ -1,22 +1,28 @@
 CONST a=10;
 VAR b,c;
 procedure p;
-procedure q;
-
-begin
-call p; 
-call q;
-end;
-begin
-  b:=b+a;
-end;
+	VAR bb,cc;
+	procedure q;
+		begin
+			call p; 
+			call q;
+		end;
+	begin
+ 		b:=b+a;
+	end;
 procedure t;
-procedure q;
-begin
-end;
-begin
-	call q;
-end;
+	procedure qq;
+	VAR bbb,ccc;
+		procedure hwq;
+			begin
+				call p; 
+				call q;
+				read(bb)
+			end;
+		;
+	begin
+		call hwq;
+	end;
 begin
   read(b);
   while b#0 do

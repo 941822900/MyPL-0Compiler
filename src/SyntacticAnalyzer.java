@@ -51,13 +51,18 @@ public class SyntacticAnalyzer
     ArrayList<Symbol> symTable;//符号表
     private int findInSymTable(String name)
     {
-        return findInSymTable(name, 2000000000);
+        return findInSymTable(name, false);
     }
-    private int findInSymTable(String name, int maxLev)
+    private int findInSymTable(String name, boolean isPro)
     {
         for(int i = 0; i < symTable.size(); i++)
         {
-            if(symTable.get(i).canUse && symTable.get(i).lev <= maxLev && symTable.get(i).name.equals(name))
+            if(symTable.get(i).canUse)
+            {
+                if(symTable.get(i).name.equals(name))
+                    return i;
+            }
+            else if(isPro && symTable.get(i).kind == Kind.PROCEDURE && symTable.get(i).name.equals(name))
                 return i;
         }
         return -1;
@@ -154,6 +159,7 @@ public class SyntacticAnalyzer
     private String theStr() {
         if(p >= words.size()) return "-";
         return words.get(p).getValue();
+
     }
     //得到p-x位置二元式的首项
     private int preNum(int x) {
@@ -258,7 +264,7 @@ public class SyntacticAnalyzer
         read(14);
         read(20);
         read(15);
-        if(findInSymTable(preStr(3), lev) != -1)
+        if(findInSymTable(preStr(3)) != -1)
             reportError("Semantic analysis error!\r\nRepeated CONST " + preStr(3) + " definition!");
         Symbol symbol = new Symbol();
         symbol.name = preStr(3);
@@ -274,7 +280,7 @@ public class SyntacticAnalyzer
         treeString +="E{";
         read(2);
         read(14);
-        if(findInSymTable(preStr(1), lev) != -1)
+        if(findInSymTable(preStr(1)) != -1)
             reportError("Semantic analysis error!\r\nRepeated VAR " + preStr(1) + " definition!");
         Symbol symbol = new Symbol();
         symbol.name = preStr(1);
@@ -287,7 +293,7 @@ public class SyntacticAnalyzer
         {
             read(27);
             read(14);
-            if(findInSymTable(preStr(1), lev) != -1)
+            if(findInSymTable(preStr(1)) != -1)
                 reportError("Semantic analysis error!\r\nRepeated VAR " + preStr(1) + " definition!");
             symbol = symbol.copy();
             symbol.name = preStr(1);
@@ -316,7 +322,7 @@ public class SyntacticAnalyzer
         read(3);
         read(14);
         read(28);
-        if(findInSymTable(preStr(2)) != -1)
+        if(findInSymTable(preStr(2), true) != -1)
             reportError("Semantic analysis error!\r\nRepeated PROCEDURE " + preStr(2) + " definition!");
         Symbol symbol = new Symbol();
         symbol.name = preStr(2);
@@ -346,7 +352,7 @@ public class SyntacticAnalyzer
         treeString +="I{";
         read(14);
         read(26);
-        int pos = findInSymTable(preStr(2), lev);
+        int pos = findInSymTable(preStr(2));
         if(pos == -1)
             reportError("Semantic analysis error!\r\nThe " + preStr(2) + " has no definition!");
         if(symTable.get(pos).kind != Kind.VAR)
@@ -436,7 +442,7 @@ public class SyntacticAnalyzer
         if(theNum() == 14)
         {
             read(14);
-            int pos = findInSymTable(preStr(1), lev);
+            int pos = findInSymTable(preStr(1));
             if(pos == -1)
                 reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
             if(symTable.get(pos).kind == Kind.PROCEDURE)
@@ -495,7 +501,7 @@ public class SyntacticAnalyzer
         treeString +="S{";
         read(11);
         read(14);
-        int pos = findInSymTable(preStr(1));
+        int pos = findInSymTable(preStr(1), true);
         if(pos == -1)
             reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
         if(symTable.get(pos).kind != Kind.PROCEDURE)
@@ -525,7 +531,7 @@ public class SyntacticAnalyzer
         read(12);
         read(29);
         read(14);
-        int pos = findInSymTable(preStr(1), lev);
+        int pos = findInSymTable(preStr(1));
         if(pos == -1)
             reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
         if(symTable.get(pos).kind != Kind.VAR)
@@ -536,7 +542,7 @@ public class SyntacticAnalyzer
         {
             read(27);
             read(14);
-            pos = findInSymTable(preStr(1), lev);
+            pos = findInSymTable(preStr(1));
             if(pos == -1)
                 reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
             if(symTable.get(pos).kind != Kind.VAR)
