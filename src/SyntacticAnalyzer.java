@@ -25,7 +25,7 @@ import java.util.ArrayList;
 <S> → call<标识符>
 <T> → while<K>do<H>
 <U> → read(<标识符>{ ，<标识符>})
-<V> → write(<标识符>{，<标识符>})
+<V> → write(<L>{，<L>})
  */
 public class SyntacticAnalyzer
 {
@@ -38,13 +38,11 @@ public class SyntacticAnalyzer
         int val;//值,，常量使用
         int lev;//嵌套层数，变量与过程使用
         int adr;//相对地址，变量与过程使用，分别指数据段位置与代码段位置
-        int size;//存储空间
-        Symbol(){val = lev = adr = size = -1; name = ""; kind = Kind.UNDEFINED;}
+        Symbol(){val = lev = adr = -1; name = ""; kind = Kind.UNDEFINED;}
         Symbol copy(){
             Symbol symbol = new Symbol();
             symbol.name = name; symbol.kind = kind;
-            symbol.val = val; symbol.lev = lev;
-            symbol.adr = adr; symbol.size = size;
+            symbol.val = val; symbol.lev = lev; symbol.adr = adr;
             return symbol;
         }
     }
@@ -81,9 +79,9 @@ public class SyntacticAnalyzer
     //OPR 0 8		是否相等 退栈两个元素 结果进栈
     //OPR 0 9		是否不等 退栈两个元素 结果进栈
     //OPR 0 10		次栈顶是否小于栈顶 退栈两个元素 结果进栈
-    //OPR 0 11		次栈顶是否大于等于栈顶 退栈两个元素 结果进栈
-    //OPR 0 12		次栈顶是否大于栈顶 退栈两个元素 结果进栈
     //OPR 0 13		次栈顶是否小于等于栈顶 退栈两个元素 结果进栈
+    //OPR 0 12		次栈顶是否大于栈顶 退栈两个元素 结果进栈
+    //OPR 0 11		次栈顶是否大于等于栈顶 退栈两个元素 结果进栈
     //OPR 0 14		栈顶值输出至屏幕
     //OPR 0 15		屏幕输出换行
     //OPR 0 16		从命令行读入一个输入至于栈顶
@@ -94,20 +92,28 @@ public class SyntacticAnalyzer
         OP op;
         int l, a;
         Code(){op = OP.UNDEFINED; l = a = -1;}
+        Code(OP op, int l, int a)
+        {
+            this.op = op; this.l = l; this.a = a;
+        }
+        Code copy(){
+            Code code = new Code();
+            code.op = op; code.l = l; code.a = a;
+            return code;
+        }
     }
-    ArrayList<Code> codeTable;//符号表
+    ArrayList<Code> codeTable;//生成代码表
     //-------------------------------------------------------------------------------------------
 
     private int p;
     private int lev; //当前的层次
-    private Symbol curPro; //当前处于过程的符号表项
     private String treeString;
+    private static final int NUM_LINK_DATA = 3;
     ArrayList<Pair<Integer,String>> words;
     private void init()
     {
         p = 0;
         lev = 0;
-        curPro = null;
         treeString = "";
         symTable = new ArrayList<>();
         codeTable = new ArrayList<>();
@@ -173,13 +179,21 @@ public class SyntacticAnalyzer
         }
         else reportError("[" + theNum() + " " + theStr() + "]\r\nError in SyntacticAnalyzer! 错误");
     }
-    private void A() {
+    //生成代码语句 (op,l,a)
+    private void gen(OP op, int l, int a)
+    {
+        codeTable.add(new Code(op, l, a));
+    }
+    private int A() {
         treeString +="A{";
-        B();
+        int count = 0;
+        count += B();
         treeString +="}";
+        return count;
     }
     //分程序
-    private void B() {
+    private int B() {
+        int count = 0;
         ++lev;
         if(lev > 3)
         {
@@ -187,18 +201,27 @@ public class SyntacticAnalyzer
             System.exit(0);
         }
         treeString +="B{";
+        int nowPC = codeTable.size() - 1;
+        gen(OP.JMP, 0, 0);//a值过程(即F)执行完后，回填
         if(theNum() == 1)
-            C();
+            count += C();
         if(theNum() == 2)
-            E();
+            count += E();
         if(theNum() == 3)
-            F();
-        H();
-        treeString +="}";
+        {
+            count += F();
+            codeTable.get(nowPC).a = codeTable.size() - 1;
+        }
+        else codeTable.remove(codeTable.size() - 1);//没有过程说明部分，则不需要这一条跳转语句
+        gen(OP.INT, 0, NUM_LINK_DATA + count);//开辟改过程的空间
+        count += H();
+        gen(OP.OPR, 0, 0);//过程结束
         --lev;
+        treeString +="}";
+        return count;
     }
     //常量说明部分
-    private void C() {
+    private int C() {
         treeString +="C{";
         read(1);
         D();
@@ -209,72 +232,82 @@ public class SyntacticAnalyzer
         }
         read(28);
         treeString +="}";
+        return 0;
     }
-    private void D() {
+    private int D() {
         treeString +="D{";
         read(14);
         read(20);
         read(15);
         if(findInSymTable(preStr(3)) != -1)
-            reportError("Semantic analysis error!\r\nRepeated const definition!");
-        else
-        {
-            Symbol symbol = new Symbol();
-            symbol.name = preStr(3);
-            symbol.kind = Kind.CONST;
-            symbol.val = preNum(3);
-        }
+            reportError("Semantic analysis error!\r\nRepeated CONST " + preStr(3) + " definition!");
+        Symbol symbol = new Symbol();
+        symbol.name = preStr(3);
+        symbol.kind = Kind.CONST;
+        symbol.val = preNum(3);
+        symTable.add(symbol);
         treeString +="}";
+        return 0;
     }
     //变量说明部分
-    private void E() {
+    private int E() {
+        int count = 0;
         treeString +="E{";
         read(2);
         read(14);
+        if(findInSymTable(preStr(1)) != -1)
+            reportError("Semantic analysis error!\r\nRepeated VAR " + preStr(1) + " definition!");
         Symbol symbol = new Symbol();
         symbol.name = preStr(1);
         symbol.kind = Kind.VAR;
         symbol.lev = lev;
         symbol.adr = 0;
         symTable.add(symbol);
-        curPro.size++; //处于的过程空间+1
+        ++count;
         while(theNum() == 27)
         {
             read(27);
             read(14);
+            if(findInSymTable(preStr(1)) != -1)
+                reportError("Semantic analysis error!\r\nRepeated VAR " + preStr(1) + " definition!");
             symbol = symbol.copy();
             symbol.name = preStr(1);
             symbol.adr++;
             symTable.add(symbol);
+            ++count;
         }
         read(28);
         treeString +="}";
+        return count;
     }
     //过程说明部分
-    private void F() {
+    private int F() {
+        int count = 0;
         treeString +="F{";
-        G();
-        B();
+        count += G();
+        count += B();
         read(28);
         while (theNum() == 3)
-            F();
+            count += F();
         treeString +="}";
+        return count;
     }
-    private void G() {
+    private int G() {
         treeString +="G{";
         read(3);
         read(14);
         read(28);
+        if(findInSymTable(preStr(2)) != -1)
+            reportError("Semantic analysis error!\r\nRepeated PROCEDURE " + preStr(2) + " definition!");
         Symbol symbol = new Symbol();
         symbol.name = preStr(2);
         symbol.kind = Kind.PROCEDURE;
         symbol.lev = lev;
         symbol.adr = codeTable.size() - 1;
-        symbol.size = 3;//等待扫描到变量再更新更新,更新curPro的size即可
-        curPro = symbol;
         treeString +="}";
+        return 0;
     }
-    private void H() {
+    private int H() {
         treeString +="H{";
         switch (theNum())
         {
@@ -287,15 +320,24 @@ public class SyntacticAnalyzer
             case 4: J();break;
         }
         treeString +="}";
+        return 0;
     }
-    private void I() {
+    private int I() {
         treeString +="I{";
         read(14);
         read(26);
+        int pos = findInSymTable(preStr(2));
+        if(pos == -1)
+            reportError("Semantic analysis error!\r\nThe " + preStr(2) + " has no definition!");
+        if(symTable.get(pos).kind != Kind.VAR)
+            reportError("Semantic analysis error!\r\nThe left side of the assignment statement must be VAR, but " + preStr(2) + " is not!");
         L();
+        gen(OP.STO, lev - symTable.get(pos).lev, symTable.get(pos).adr);
         treeString +="}";
+        return 0;
     }
-    private void J() {
+    //复合语句
+    private int J() {
         treeString +="J{";
         read(4);
         H();
@@ -306,52 +348,86 @@ public class SyntacticAnalyzer
         }
         read(5);
         treeString +="}";
+        return 0;
     }
-    private void K() {
+    //条件
+    private int K() {
         treeString +="K{";
         if(theNum() == 6)
         {
             read(6);
             L();
+            gen(OP.LIT, 0, 0);
+            gen(OP.OPR, 0 ,8);
         }
         else
         {
             L();
             Q();
+            int theOpr = preNum(1);
             L();
+            gen(OP.OPR,0, theOpr - 12);
         }
         treeString +="}";
+        return 0;
     }
-    private void L() {
+    //表达式
+    private int L() {
         treeString +="L{";
+        boolean hasMinus = false;
         if(theNum() == 16)
             read(16);
         else if(theNum() == 17)
+        {
+            hasMinus = true;
+            gen(OP.LIT, 0 , 0);
             read(17);
+        }
         M();
+        if(hasMinus)
+            gen(OP.OPR, 0, 3);
         while (theNum() == 16 || theNum() == 17)
         {
             O();
+            int theOpr = preNum(1);
             M();
+            gen(OP.OPR, 0, theOpr - 14);
         }
         treeString +="}";
+        return 0;
     }
-    private void M() {
+    //项
+    private int M() {
         treeString +="M{";
         N();
         while (theNum() == 18 || theNum() == 19)
         {
             P();
+            int theOpr = preNum(1);
             N();
+            gen(OP.OPR, 0, theOpr - 14);
         }
         treeString +="}";
+        return 0;
     }
-    private void N() {
+    //因子
+    private int N() {
         treeString +="N{";
         if(theNum() == 14)
+        {
             read(14);
+            int pos = findInSymTable(preStr(1));
+            if(pos == -1)
+                reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
+            if(symTable.get(pos).kind == Kind.PROCEDURE)
+                reportError("Semantic analysis error!\r\nA factor cannot be a PROCEDURE, but " + preStr(1) + " is!");
+            gen(OP.LOD, lev - symTable.get(pos).lev, symTable.get(pos).adr);
+        }
         else if(theNum() == 15)
+        {
             read(15);
+            gen(OP.LIT, 0, preNum(1));
+        }
         else
         {
             read(29);
@@ -359,68 +435,114 @@ public class SyntacticAnalyzer
             read(30);
         }
         treeString +="}";
+        return 0;
     }
-    private void O() {
+    private int O() {
         treeString +="O{";
         read(16,17);
         treeString +="}";
+        return 0;
     }
-    private void P() {
+    private int P() {
         treeString +="P{";
         read(18,19);
         treeString +="}";
+        return 0;
     }
-    private void Q() {
+    private int Q() {
         treeString +="Q{";
         read(20,25);
         treeString +="}";
+        return 0;
     }
-    private void R() {
+    //条件语句
+    private int R() {
         treeString +="R{";
         read(7);
         K();
+        int nowPC = codeTable.size() - 1;
+        gen(OP.JPC, 0, 0); //条件为假，跳转至a地址，等待回填
         read(8);
         H();
+        codeTable.get(nowPC).a = codeTable.size() - 1;
         treeString +="}";
+        return 0;
     }
-    private void S() {
+    //过程调用语句
+    private int S() {
         treeString +="S{";
         read(11);
         read(14);
+        int pos = findInSymTable(preStr(1));
+        if(pos == -1)
+            reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
+        if(symTable.get(pos).kind != Kind.PROCEDURE)
+            reportError("Semantic analysis error!\r\nThe " + preStr(1) + " is not a PROCEDURE!");
+        gen(OP.CAL, lev - symTable.get(pos).lev, symTable.get(pos).adr);
         treeString +="}";
+        return 0;
     }
-    private void T() {
+    //当型循环语句
+    private int T() {
         treeString +="T{";
+        int loopPC = codeTable.size() - 1;
         read(9);
         K();
+        int nowPC = codeTable.size() - 1;
+        gen(OP.JPC, 0, 0); //循环条件为假，跳转至a地址，等待回填
         read(10);
         H();
+        gen(OP.JMP, 0, loopPC);
+        codeTable.get(nowPC).a = codeTable.size() - 1;
         treeString +="}";
+        return 0;
     }
-    private void U() {
+    //读语句
+    private int U() {
         treeString +="U{";
         read(12);
         read(29);
         read(14);
+        int pos = findInSymTable(preStr(1));
+        if(pos == -1)
+            reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
+        if(symTable.get(pos).kind != Kind.VAR)
+            reportError("Semantic analysis error!\r\nThe one in READ must be VAR, but " + preStr(1) + " is not!");
+        gen(OP.OPR, 0, 16);
+        gen(OP.STO, lev - symTable.get(pos).lev, symTable.get(pos).adr);
         while(theNum() == 27)
         {
             read(27);
             read(14);
+            pos = findInSymTable(preStr(1));
+            if(pos == -1)
+                reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
+            if(symTable.get(pos).kind != Kind.VAR)
+                reportError("Semantic analysis error!\r\nThe one in READ must be VAR, but " + preStr(1) + " is not!");
+            gen(OP.OPR, 0, 16);
+            gen(OP.STO, lev - symTable.get(pos).lev, symTable.get(pos).adr);
         }
         read(30);
         treeString +="}";
+        return 0;
     }
-    private void V() {
+    //写语句
+    private int V() {
         treeString +="V{";
         read(13);
         read(29);
-        read(14);
+        L();
+        gen(OP.OPR, 0, 14);
+        gen(OP.OPR, 0, 15);
         while(theNum() == 27)
         {
             read(27);
-            read(14);
+            L();
+            gen(OP.OPR, 0, 14);
+            gen(OP.OPR, 0, 15);
         }
         read(30);
         treeString +="}";
+        return 0;
     }
 }
