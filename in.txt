@@ -1,8 +1,21 @@
 CONST a=10;
 VAR b,c;
 procedure p;
+procedure q;
+
 begin
-  c:=b+a
+call p; 
+call q;
+end;
+begin
+  b:=b+a;
+end;
+procedure t;
+procedure q;
+begin
+end;
+begin
+	call q;
 end;
 begin
   read(b);
