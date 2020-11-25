@@ -38,7 +38,8 @@ public class SyntacticAnalyzer
         int val;//值,，常量使用
         int lev;//嵌套层数，变量与过程使用
         int adr;//相对地址，变量与过程使用，分别指数据段位置与代码段位置
-        boolean canUse;//现在是否还能被使用
+        boolean canUse;//现在是否还能被使用，var和const是否能使用以这个变量为准
+        String posInTree;//用字符串表达在嵌套树中的位置，形式形如1-1-1,1-1-2这样。这样表示，则一个点是另一个点的祖先或后辈等价于一个串是另一个的前缀
         Symbol(){val = lev = adr = -1; name = ""; kind = Kind.UNDEFINED; canUse = true;}
         Symbol copy(){
             Symbol symbol = new Symbol();
@@ -55,15 +56,34 @@ public class SyntacticAnalyzer
     }
     private int findInSymTable(String name, boolean isPro)
     {
+        //isPro表示是否是一个过程来进行查询，在创建和调用过程时isPro将为true，此时我们将采用不同的逻辑
         for(int i = 0; i < symTable.size(); i++)
         {
-            if(symTable.get(i).canUse)
+            if(symTable.get(i).kind == Kind.UNDEFINED)
+                continue;
+            if(symTable.get(i).kind != Kind.PROCEDURE)
             {
-                if(symTable.get(i).name.equals(name))
+                //变量或常量
+                if(symTable.get(i).canUse && symTable.get(i).name.equals(name))
                     return i;
             }
-            else if(isPro && symTable.get(i).kind == Kind.PROCEDURE && symTable.get(i).name.equals(name))
-                return i;
+            else
+            {
+                if(!symTable.get(i).name.equals(name))
+                    continue;//首先他们的字符串得相等
+                //过程，使用posInTree字符串判断
+                String s1 = nowPosInTree;
+                String s2 = symTable.get(i).posInTree;
+                //一个是另一个子前缀，则说明两者有祖辈关系
+                if(s1.length() <= s2.length() && s1.equals(s2.substring(0,s1.length())))
+                    return i;
+                if(s2.length() <= s1.length() && s2.equals(s1.substring(0,s2.length())))
+                    return i;
+                s1 = s1.substring(0, s1.lastIndexOf('-') + 1);
+                s2 = s2.substring(0, s2.lastIndexOf('-') + 1);
+                if(s1.equals(s2))
+                    return i; //兄弟
+            }
         }
         return -1;
     }
@@ -122,6 +142,7 @@ public class SyntacticAnalyzer
 
     private int p;
     private int lev; //当前的层次
+    private String nowPosInTree; //当前的posInTree值,调用一次B()进入下一层
     private String treeString;
     private static final int NUM_LINK_DATA = 3;
     ArrayList<Pair<Integer,String>> words;
@@ -129,6 +150,7 @@ public class SyntacticAnalyzer
     {
         p = 0;
         lev = 0;
+        nowPosInTree = "";
         treeString = "";
         symTable = new ArrayList<>();
         codeTable = new ArrayList<>();
@@ -209,7 +231,10 @@ public class SyntacticAnalyzer
     private int A() {
         treeString +="A{";
         int count = 0;
+        String tmp = nowPosInTree;
+        nowPosInTree += "-1";
         count += B();
+        nowPosInTree = tmp;
         treeString +="}";
         return count;
     }
@@ -217,7 +242,7 @@ public class SyntacticAnalyzer
     private int B() {
         int count = 0;
         ++lev;
-        if(lev > 3)
+        if(lev > 30)//todo
         {
             System.out.println("PL/0程序的嵌套不能超过3层！");
             System.exit(0);
@@ -232,7 +257,7 @@ public class SyntacticAnalyzer
             count += E();
         if(theNum() == 3)
         {
-            count += F();
+            count += F(1);
             codeTable.get(nowPC).a = codeTable.size();
         }
         else codeTable.remove(codeTable.size() - 1);//没有过程说明部分，则不需要这一条跳转语句
@@ -305,15 +330,18 @@ public class SyntacticAnalyzer
         treeString +="}";
         return count;
     }
-    //过程说明部分
-    private int F() {
+    //过程说明部分, id表示这是该block定义的第几个过程
+    private int F(int id) {
         int count = 0;
         treeString +="F{";
         count += G();
+        String tmp = nowPosInTree;
+        nowPosInTree += "-" + id;
         count += B();
+        nowPosInTree = tmp;
         read(28);
         while (theNum() == 3)
-            count += F();
+            count += F(id + 1);
         treeString +="}";
         return count;
     }
@@ -329,6 +357,7 @@ public class SyntacticAnalyzer
         symbol.kind = Kind.PROCEDURE;
         symbol.lev = lev;
         symbol.adr = codeTable.size();
+        symbol.posInTree = nowPosInTree;
         symTable.add(symbol);
         treeString +="}";
         return 0;
