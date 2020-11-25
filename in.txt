@@ -11,16 +11,18 @@ procedure p;
  		b:=b+a;
 	end;
 procedure t;
-	procedure qq;
 	VAR bbb,ccc;
+	procedure qq;
+		VAR bbbb,cccc;
 		procedure hwq;
 			begin
 				call p; 
-				call q;
-				read(bb)
+				read(b)
 			end;
 		;
 	begin
+		read(b);
+		read(bbb);
 		call hwq;
 	end;
 begin

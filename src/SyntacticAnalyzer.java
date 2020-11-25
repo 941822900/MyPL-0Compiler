@@ -52,11 +52,6 @@ public class SyntacticAnalyzer
     ArrayList<Symbol> symTable;//符号表
     private int findInSymTable(String name)
     {
-        return findInSymTable(name, false);
-    }
-    private int findInSymTable(String name, boolean isPro)
-    {
-        //isPro表示是否是一个过程来进行查询，在创建和调用过程时isPro将为true，此时我们将采用不同的逻辑
         for(int i = 0; i < symTable.size(); i++)
         {
             if(symTable.get(i).kind == Kind.UNDEFINED)
@@ -350,7 +345,7 @@ public class SyntacticAnalyzer
         read(3);
         read(14);
         read(28);
-        if(findInSymTable(preStr(2), true) != -1)
+        if(findInSymTable(preStr(2)) != -1)
             reportError("Semantic analysis error!\r\nRepeated PROCEDURE " + preStr(2) + " definition!");
         Symbol symbol = new Symbol();
         symbol.name = preStr(2);
@@ -530,7 +525,7 @@ public class SyntacticAnalyzer
         treeString +="S{";
         read(11);
         read(14);
-        int pos = findInSymTable(preStr(1), true);
+        int pos = findInSymTable(preStr(1));
         if(pos == -1)
             reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
         if(symTable.get(pos).kind != Kind.PROCEDURE)
