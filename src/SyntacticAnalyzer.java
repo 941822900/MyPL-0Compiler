@@ -109,9 +109,9 @@ public class SyntacticAnalyzer
     //OPR 0 8		是否相等 退栈两个元素 结果进栈
     //OPR 0 9		是否不等 退栈两个元素 结果进栈
     //OPR 0 10		次栈顶是否小于栈顶 退栈两个元素 结果进栈
-    //OPR 0 13		次栈顶是否小于等于栈顶 退栈两个元素 结果进栈
+    //OPR 0 11		次栈顶是否小于等于栈顶 退栈两个元素 结果进栈
     //OPR 0 12		次栈顶是否大于栈顶 退栈两个元素 结果进栈
-    //OPR 0 11		次栈顶是否大于等于栈顶 退栈两个元素 结果进栈
+    //OPR 0 13		次栈顶是否大于等于栈顶 退栈两个元素 结果进栈
     //OPR 0 14		栈顶值输出至屏幕
     //OPR 0 15		屏幕输出换行
     //OPR 0 16		从命令行读入一个输入至于栈顶
@@ -263,7 +263,7 @@ public class SyntacticAnalyzer
         deleteInSymTable(nowSymPos, symTable.size() - 1);
         --lev;
         treeString +="}";
-        return count;
+        return 0;
     }
     //常量说明部分
     private int C() {
@@ -530,6 +530,8 @@ public class SyntacticAnalyzer
             reportError("Semantic analysis error!\r\nThe " + preStr(1) + " has no definition!");
         if(symTable.get(pos).kind != Kind.PROCEDURE)
             reportError("Semantic analysis error!\r\nThe " + preStr(1) + " is not a PROCEDURE!");
+        if(lev - symTable.get(pos).lev < -1)
+            reportError("Can't call PROCEDURE " + preStr(1));
         gen(OP.CAL, lev - symTable.get(pos).lev, symTable.get(pos).adr);
         treeString +="}";
         return 0;
