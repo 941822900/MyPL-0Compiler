@@ -39,9 +39,10 @@ public class Interpreter
         }
     }
     int base; //基址寄存器
-    Scanner scan;
-    ArrayList<Code> codeTable;
-    ArrayList<Integer> stack;
+    Scanner scan; //标准输入
+    ArrayList<Code> codeTable; //代码表
+    ArrayList<Integer> stack; //运行栈
+    //初始化
     private void init()
     {
         base = 0;
@@ -49,6 +50,7 @@ public class Interpreter
         codeTable = new ArrayList<>();
         stack = new ArrayList<>();
     }
+    //在运行栈中找到一个变量，l表示层差，a表示相对地址（还能用来寻找静态链）
     private int findVar(int l, int a)
     {
         int nowBase = base;
@@ -56,6 +58,7 @@ public class Interpreter
             nowBase = stack.get(nowBase + 2);
         return nowBase + a;
     }
+    //主函数，工作
     public void work(String str)
     {
         init();

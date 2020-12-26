@@ -41,6 +41,7 @@ public class LexicalAnalyzer
 {
     private Map<String,Integer> map1 = new HashMap<>();//关键字
     private Map<String,Integer> map2 = new HashMap<>();//运算符
+    //初始化
     public void init(String filename)
     {
         int cnt = 0;
@@ -62,11 +63,13 @@ public class LexicalAnalyzer
             }
         }
     }
+    //词法分析
     public void lexicalAnalyze(String writeFileName, String str)
     {
         String ret = "";
         str = str.replaceAll("\t","");
         String words[] = str.split(" |\\r\\n");
+        //遍历所有字符串，分离出单词
         for(int i = 0; i < words.length; i++)
         {
             String tmp = "";
@@ -76,8 +79,8 @@ public class LexicalAnalyzer
                 tmp += "(" + map2.get(words[i]) + ",-)\r\n";
             else
             {
-                int flag = 0;
-                String now = "";
+                int flag = 0; //标记，初始值为0
+                String now = ""; //now代表当前词
                 for(int j = 0; j < words[i].length(); j++)
                 {
                     char c = words[i].charAt(j); now += c;
@@ -116,6 +119,7 @@ public class LexicalAnalyzer
                         }
                     }
                 }
+                //循环完后，now还能成词
                 if(now.length() > 0)
                 {
                     if(flag == 1)

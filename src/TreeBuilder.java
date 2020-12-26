@@ -16,6 +16,7 @@ public class TreeBuilder {
         gtest.start(nodes, preline);
     }
      */
+    //根据2.txt的括号表达式，画树到tree.png
     public void work()
     {
         TreeBuilder gtest = new TreeBuilder();

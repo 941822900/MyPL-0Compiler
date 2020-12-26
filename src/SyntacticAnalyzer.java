@@ -223,6 +223,7 @@ public class SyntacticAnalyzer
     {
         codeTable.add(new Code(op, l, a));
     }
+    //程序
     private int A() {
         treeString +="A{";
         int count = 0;
