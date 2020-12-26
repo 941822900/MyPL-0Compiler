@@ -11,6 +11,10 @@ public class Main
         SyntacticAnalyzer syntacticAnalyzer = new SyntacticAnalyzer();
         syntacticAnalyzer.syntacticAnalyse("2.txt","3.txt",FileHandler.readToString("1.txt"));
 
+        //画个树，乐呵乐呵
+        TreeBuilder treeBuilder = new TreeBuilder();
+        treeBuilder.work();
+
         //解释器模拟执行
         Interpreter interpreter = new Interpreter();
         interpreter.work(FileHandler.readToString("3.txt"));

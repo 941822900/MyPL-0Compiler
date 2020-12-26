@@ -1,73 +1,15 @@
-VAR x, y, z, q, r, n, f;
-
-procedure divide;
-VAR w;
+CONST a=10;
+VAR b,c;
+procedure p;
 begin
-r := x;
-q := 0;
-w := y;
-while w <= r do w := 2 * w;
-while w > y do
-begin
-q := 2 * q;
-w := w / 2;
-if w <= r then
-begin
-r := r - w;
-q := q + 1
-end
-end
-end;
-
-procedure gcd;
-VAR w, g;
-begin
-w := x;
-g := y;
-while w # g do
-begin
-if w < g then g := g - w;
-if g < w then w := w - g
-end;
-z := w
-end;
-
-procedure fact;
-begin
-if n > 1 then
-begin
-f := n * f;
-n := n - 1;
-call fact
-end
-end;
-
-procedure staticlink;
-VAR a,modifier;
-procedure mmodifier;
-begin
-modifier:=1;
-a := 5;
-q := 3;
+  c:=b+a
 end;
 begin
-a:=3;
-if n = 0 then
-begin
-call mmodifier
-end;
-if n > 0 then
-begin
-n := n - 1;
-call staticlink;
-end;
-write(a);
-end;
-
-begin
-read(x,y); 
-call divide; write(q);write(r);
-read(x,y); call gcd; write(z);
-read(n); f := 1; call fact; write(f);
-n:=3;q:=2; call staticlink; write(n);write(q);
+  read(b);
+  while b#0 do
+    begin
+      call  p;
+      write(2*c);
+      read(b)
+     end
 end
